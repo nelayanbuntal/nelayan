@@ -1,4 +1,4 @@
--- Script untuk Delta executor (versi lengkap dengan position download)
+-- Script untuk Delta executor (versi final dengan folder auto-create)
 local config_url = "https://pastebin.com/raw/RBVCAb6B"
 local save_dir = "/storage/emulated/0/Delta/Workspace/Chloe X/Config"
 local save_file = save_dir .. "/Chloe_Fish_It_.json"
@@ -56,23 +56,47 @@ local function http_get(url)
     error("http_get: Tidak ada metode HTTP yang berhasil di environment ini.")
 end
 
--- Pastikan folder ada
+-- Pastikan folder ada (versi final, lebih aman)
 local function ensure_dir(path)
+    local success = true
+
+    -- Gunakan isfolder/makefolder jika tersedia
     if type(isfolder) == "function" and type(makefolder) == "function" then
         local cur = ""
         for part in path:gmatch("[^/]+") do
             cur = (cur == "" and part) or (cur .. "/" .. part)
             if not isfolder(cur) then
-                pcall(function() makefolder(cur) end)
+                local ok, err = pcall(makefolder, cur)
+                if not ok then
+                    safe_print("[-] Gagal membuat folder:", cur, "Error:", err)
+                    success = false
+                end
             end
         end
-        return true
+        return success
     end
-    -- fallback os.execute
-    local ok, _ = pcall(function()
-        os.execute('mkdir -p "' .. path:gsub('"','\\"') .. '"')
-    end)
-    return ok
+
+    -- Fallback step by step
+    local parts = {}
+    for part in path:gmatch("[^/]+") do table.insert(parts, part) end
+    local cur = ""
+    for _, part in ipairs(parts) do
+        cur = (cur == "" and part) or (cur .. "/" .. part)
+        local f = io.open(cur, "r")
+        if not f then
+            local ok, _ = pcall(function()
+                os.execute('mkdir "' .. cur:gsub('"','\\"') .. '"')
+            end)
+            if not ok then
+                safe_print("[-] Fallback gagal buat folder:", cur)
+                success = false
+            end
+        else
+            f:close()
+        end
+    end
+
+    return success
 end
 
 -- Menulis file
@@ -104,7 +128,10 @@ local function download_file(url, dir, filename, label)
     safe_print("[+] " .. label .. " diterima. Ukuran:", #body, "bytes")
 
     -- pastikan folder ada
-    pcall(ensure_dir, dir)
+    local dir_ok = pcall(ensure_dir, dir)
+    if not dir_ok then
+        safe_print("[-] Gagal membuat folder untuk " .. label .. ". File mungkin tidak tersimpan.")
+    end
 
     -- tulis file
     local wrote, write_err = write_file(filename, body)
