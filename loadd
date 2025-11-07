@@ -1,24 +1,30 @@
--- Script untuk Delta executor
+-- Script untuk Delta executor (versi lengkap dengan position download)
 local config_url = "https://pastebin.com/raw/RBVCAb6B"
 local save_dir = "/storage/emulated/0/Delta/Workspace/Chloe X/Config"
 local save_file = save_dir .. "/Chloe_Fish_It_.json"
 local main_script_url = "https://raw.githubusercontent.com/MajestySkie/Chloe-X/main/Main/ChloeX"
 
+-- File baru: Position
+local position_url = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/mh"
+local position_dir = "/storage/emulated/0/Delta/Workspace/Chloe X/FishIt"
+local position_file = position_dir .. "/Position.json"
+
+-- Safe print
 local function safe_print(...)
     if type(print) == "function" then
         print(...)
     end
 end
 
--- HTTP GET fleksibel (coba beberapa method yang umum di executor Android/Roblox)
+-- HTTP GET fleksibel
 local function http_get(url)
-    -- 1) Jika game:HttpGet tersedia (roblox exploit env)
+    -- 1) game:HttpGet
     if type(game) == "table" and type(game.HttpGet) == "function" then
         local ok, res = pcall(function() return game:HttpGet(url) end)
         if ok and res and #res > 0 then return res end
     end
 
-    -- 2) HttpService (Roblox)
+    -- 2) HttpService:GetAsync
     if type(game) == "table" and type(game.GetService) == "function" then
         local ok, HttpService = pcall(function() return game:GetService("HttpService") end)
         if ok and HttpService and type(HttpService.GetAsync) == "function" then
@@ -27,7 +33,7 @@ local function http_get(url)
         end
     end
 
-    -- 3) request/http.request/syn.request (executor-provided)
+    -- 3) executor requests
     local request_fns = {
         function(u) if type(request) == "function" then local r = request({Url = u, Method = "GET"}); return r and r.Body end end,
         function(u) if type(syn) == "table" and type(syn.request) == "function" then local r = syn.request({Url = u, Method = "GET"}); return r and r.Body end end,
@@ -39,7 +45,7 @@ local function http_get(url)
         if ok and res and #res > 0 then return res end
     end
 
-    -- 4) fallback: try io.popen curl/wget (Android termux-like)
+    -- 4) fallback io.popen curl
     local popen_ok, handle = pcall(function() return io.popen('curl -s "' .. url:gsub('"','\\"') .. '"') end)
     if popen_ok and handle then
         local body = handle:read("*a")
@@ -47,15 +53,12 @@ local function http_get(url)
         if body and #body > 0 then return body end
     end
 
-    -- 5) gagal semua
     error("http_get: Tidak ada metode HTTP yang berhasil di environment ini.")
 end
 
--- Pastikan folder ada (coba isfolder/makefolder jika tersedia atau mkdir -p)
+-- Pastikan folder ada
 local function ensure_dir(path)
-    -- gunakan fungsi executor bila ada
     if type(isfolder) == "function" and type(makefolder) == "function" then
-        -- buat rekursif: bagi path berdasarkan /
         local cur = ""
         for part in path:gmatch("[^/]+") do
             cur = (cur == "" and part) or (cur .. "/" .. part)
@@ -65,59 +68,62 @@ local function ensure_dir(path)
         end
         return true
     end
-
-    -- fallback ke os.execute mkdir -p (Android/Linux)
+    -- fallback os.execute
     local ok, _ = pcall(function()
         os.execute('mkdir -p "' .. path:gsub('"','\\"') .. '"')
     end)
     return ok
 end
 
--- Menulis file, coba writefile (executor) lalu io.open
+-- Menulis file
 local function write_file(path, content)
     if type(writefile) == "function" then
         local ok, err = pcall(function() writefile(path, content) end)
         if ok then return true end
     end
-
-    -- fallback io.open (pastikan permission)
     local f, ferr = io.open(path, "w")
-    if not f then
-        return false, ferr
-    end
+    if not f then return false, ferr end
     f:write(content)
     f:close()
     return true
 end
 
--- MAIN
-local function main()
-    safe_print("[Delta] Mulai: mengunduh config dari", config_url)
-    local ok, body_or_err = pcall(http_get, config_url)
+-- Fungsi download file umum
+local function download_file(url, dir, filename, label)
+    safe_print("[Delta] Mulai mengunduh " .. label .. " dari", url)
+    local ok, body_or_err = pcall(http_get, url)
     if not ok then
-        safe_print("[-] Gagal download config:", body_or_err)
+        safe_print("[-] Gagal download " .. label .. ":", body_or_err)
         return
     end
     local body = body_or_err
     if not body or #body == 0 then
-        safe_print("[-] Response kosong saat mengunduh config.")
+        safe_print("[-] " .. label .. " kosong saat diunduh.")
         return
     end
-    safe_print("[+] Config diterima. Ukuran:", #body, "bytes")
+    safe_print("[+] " .. label .. " diterima. Ukuran:", #body, "bytes")
 
-    -- pastikan direktori ada
-    pcall(ensure_dir, save_dir)
+    -- pastikan folder ada
+    pcall(ensure_dir, dir)
 
     -- tulis file
-    local wrote, write_err = write_file(save_file, body)
+    local wrote, write_err = write_file(filename, body)
     if not wrote then
-        safe_print("[-] Gagal menyimpan file:", save_file, " Error:", write_err)
-        -- tetap lanjut ke eksekusi jika user minta (atau hentikan). Kita lanjutkan.
+        safe_print("[-] Gagal menyimpan " .. label .. ":", filename, " Error:", write_err)
     else
-        safe_print("[+] Config tersimpan di:", save_file)
+        safe_print("[+] " .. label .. " tersimpan di:", filename)
     end
+end
 
-    -- Ambil dan eksekusi main script menggunakan game:HttpGet + loadstring (atau load)
+-- MAIN
+local function main()
+    -- 1. Download Config
+    download_file(config_url, save_dir, save_file, "Config")
+
+    -- 2. Download Position
+    download_file(position_url, position_dir, position_file, "Position")
+
+    -- 3. Download & Jalankan Main Script
     safe_print("[Delta] Mengambil main script dari:", main_script_url)
     local ok2, main_body_or_err = pcall(http_get, main_script_url)
     if not ok2 then
@@ -130,7 +136,7 @@ local function main()
         return
     end
 
-    safe_print("[Delta] Mengeksekusi main script... (menggunakan loadstring jika ada)")
+    safe_print("[Delta] Mengeksekusi main script...")
     local func, load_err
     if type(loadstring) == "function" then
         func, load_err = loadstring(main_body)
