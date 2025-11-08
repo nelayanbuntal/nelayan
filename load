@@ -5,7 +5,7 @@ local save_file = save_dir .. "/Chloe_Fish_It_.json"
 local main_script_url = "https://raw.githubusercontent.com/MajestySkie/Chloe-X/main/Main/ChloeX"
 
 -- File baru: Position
-local position_url = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/sisi"
+local position_url = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/mh"
 local position_dir = "/storage/emulated/0/Delta/Workspace/Chloe X/FishIt"
 local position_file = position_dir .. "/Position.json"
 
