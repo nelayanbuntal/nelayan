@@ -1,5 +1,5 @@
 -- Script untuk Delta executor (versi final dengan folder auto-create)
-local config_url = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/main/set/0206"
+local config_url = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/set/0206"
 local save_dir = "/storage/emulated/0/Delta/Workspace/Chloe X/Config"
 local save_file = save_dir .. "/Chloe_Fish_It_.json"
 local main_script_url = "https://raw.githubusercontent.com/MajestySkie/Chloe-X/main/Main/ChloeX"
