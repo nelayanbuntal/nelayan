@@ -18,13 +18,11 @@ end
 
 -- HTTP GET fleksibel
 local function http_get(url)
-    -- 1) game:HttpGet
     if type(game) == "table" and type(game.HttpGet) == "function" then
         local ok, res = pcall(function() return game:HttpGet(url) end)
         if ok and res and #res > 0 then return res end
     end
 
-    -- 2) HttpService:GetAsync
     if type(game) == "table" and type(game.GetService) == "function" then
         local ok, HttpService = pcall(function() return game:GetService("HttpService") end)
         if ok and HttpService and type(HttpService.GetAsync) == "function" then
@@ -33,7 +31,6 @@ local function http_get(url)
         end
     end
 
-    -- 3) executor requests
     local request_fns = {
         function(u) if type(request) == "function" then local r = request({Url = u, Method = "GET"}); return r and r.Body end end,
         function(u) if type(syn) == "table" and type(syn.request) == "function" then local r = syn.request({Url = u, Method = "GET"}); return r and r.Body end end,
@@ -45,7 +42,6 @@ local function http_get(url)
         if ok and res and #res > 0 then return res end
     end
 
-    -- 4) fallback io.popen curl
     local popen_ok, handle = pcall(function() return io.popen('curl -s "' .. url:gsub('"','\\"') .. '"') end)
     if popen_ok and handle then
         local body = handle:read("*a")
@@ -56,11 +52,9 @@ local function http_get(url)
     error("http_get: Tidak ada metode HTTP yang berhasil di environment ini.")
 end
 
--- Pastikan folder ada (versi final, lebih aman)
+-- Pastikan folder ada
 local function ensure_dir(path)
     local success = true
-
-    -- Gunakan isfolder/makefolder jika tersedia
     if type(isfolder) == "function" and type(makefolder) == "function" then
         local cur = ""
         for part in path:gmatch("[^/]+") do
@@ -76,7 +70,6 @@ local function ensure_dir(path)
         return success
     end
 
-    -- Fallback step by step
     local parts = {}
     for part in path:gmatch("[^/]+") do table.insert(parts, part) end
     local cur = ""
@@ -95,7 +88,6 @@ local function ensure_dir(path)
             f:close()
         end
     end
-
     return success
 end
 
@@ -127,13 +119,11 @@ local function download_file(url, dir, filename, label)
     end
     safe_print("[+] " .. label .. " diterima. Ukuran:", #body, "bytes")
 
-    -- pastikan folder ada
     local dir_ok = pcall(ensure_dir, dir)
     if not dir_ok then
         safe_print("[-] Gagal membuat folder untuk " .. label .. ". File mungkin tidak tersimpan.")
     end
 
-    -- tulis file
     local wrote, write_err = write_file(filename, body)
     if not wrote then
         safe_print("[-] Gagal menyimpan " .. label .. ":", filename, " Error:", write_err)
@@ -142,17 +132,14 @@ local function download_file(url, dir, filename, label)
     end
 end
 
--- ADDED: fungsi untuk membuat autoload.txt yang isinya nama file (tanpa ekstensi)
+-- Fungsi baru: buat autoload.txt berdasarkan nama save_file
 local function create_autoload_for_savefile(savefile_path, target_dir)
-    -- pastikan direktori target ada
     local ok_dir = pcall(ensure_dir, target_dir)
     if not ok_dir then
         safe_print("[-] create_autoload: Gagal memastikan direktori:", target_dir)
     end
 
-    -- ambil nama file dari path (basename)
     local base = savefile_path:match("^.*/([^/]+)$") or savefile_path
-    -- hapus ekstensi (bagian terakhir setelah titik)
     local name_without_ext = base:match("^(.+)%.[^%.]+$") or base
 
     local autoload_path = target_dir .. "autoload.txt"
@@ -171,16 +158,16 @@ local function main()
     -- 1. Download Config
     download_file(config_url, save_dir, save_file, "Config")
 
-    -- ADDED: buat autoload.txt berdasarkan save_file
+    -- 2. Download Position
+    download_file(position_url, position_dir, position_file, "Position")
+
+    -- 3. Buat autoload.txt sebelum main script dijalankan
     local ok_autoload, autoload_err = pcall(create_autoload_for_savefile, save_file, save_dir)
     if not ok_autoload then
         safe_print("[-] Error saat membuat autoload:", autoload_err)
     end
 
-    -- 2. Download Position
-    download_file(position_url, position_dir, position_file, "Position")
-
-    -- 3. Download & Jalankan Main Script
+    -- 4. Download & Jalankan Main Script
     safe_print("[Delta] Mengambil main script dari:", main_script_url)
     local ok2, main_body_or_err = pcall(http_get, main_script_url)
     if not ok2 then
