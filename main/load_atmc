@@ -11,179 +11,209 @@ local position_file = position_dir .. "/saved_positions.json"
 
 -- Safe print
 local function safe_print(...)
-if type(print) == "function" then
-print(...)
-end
+    if type(print) == "function" then
+        print(...)
+    end
 end
 
 -- HTTP GET fleksibel
 local function http_get(url)
--- 1) game:HttpGet
-if type(game) == "table" and type(game.HttpGet) == "function" then
-local ok, res = pcall(function() return game:HttpGet(url) end)
-if ok and res and #res > 0 then return res end
-end
+    -- 1) game:HttpGet
+    if type(game) == "table" and type(game.HttpGet) == "function" then
+        local ok, res = pcall(function() return game:HttpGet(url) end)
+        if ok and res and #res > 0 then return res end
+    end
 
--- 2) HttpService:GetAsync
-if type(game) == "table" and type(game.GetService) == "function" then
-local ok, HttpService = pcall(function() return game:GetService("HttpService") end)
-if ok and HttpService and type(HttpService.GetAsync) == "function" then
-local s, res = pcall(function() return HttpService:GetAsync(url) end)
-if s and res and #res > 0 then return res end
-end
-end
+    -- 2) HttpService:GetAsync
+    if type(game) == "table" and type(game.GetService) == "function" then
+        local ok, HttpService = pcall(function() return game:GetService("HttpService") end)
+        if ok and HttpService and type(HttpService.GetAsync) == "function" then
+            local s, res = pcall(function() return HttpService:GetAsync(url) end)
+            if s and res and #res > 0 then return res end
+        end
+    end
 
--- 3) executor requests
-local request_fns = {
-function(u) if type(request) == "function" then local r = request({Url = u, Method = "GET"}); return r and r.Body end end,
-function(u) if type(syn) == "table" and type(syn.request) == "function" then local r = syn.request({Url = u, Method = "GET"}); return r and r.Body end end,
-function(u) if type(http) == "table" and type(http.request) == "function" then local r = http.request({url = u}); return r and (r.body or r.Body) end end,
-function(u) if type(http_request) == "function" then local r = http_request({Url = u, Method = "GET"}); return r and r.Body end end,
-}
-for _, fn in ipairs(request_fns) do
-local ok, res = pcall(fn, url)
-if ok and res and #res > 0 then return res end
-end
+    -- 3) executor requests
+    local request_fns = {
+        function(u) if type(request) == "function" then local r = request({Url = u, Method = "GET"}); return r and r.Body end end,
+        function(u) if type(syn) == "table" and type(syn.request) == "function" then local r = syn.request({Url = u, Method = "GET"}); return r and r.Body end end,
+        function(u) if type(http) == "table" and type(http.request) == "function" then local r = http.request({url = u}); return r and (r.body or r.Body) end end,
+        function(u) if type(http_request) == "function" then local r = http_request({Url = u, Method = "GET"}); return r and r.Body end end,
+    }
+    for _, fn in ipairs(request_fns) do
+        local ok, res = pcall(fn, url)
+        if ok and res and #res > 0 then return res end
+    end
 
--- 4) fallback io.popen curl
-local popen_ok, handle = pcall(function() return io.popen('curl -s "' .. url:gsub('"','\\"') .. '"') end)
-if popen_ok and handle then
-local body = handle:read("*a")
-handle:close()
-if body and #body > 0 then return body end
-end
+    -- 4) fallback io.popen curl
+    local popen_ok, handle = pcall(function() return io.popen('curl -s "' .. url:gsub('"','\\"') .. '"') end)
+    if popen_ok and handle then
+        local body = handle:read("*a")
+        handle:close()
+        if body and #body > 0 then return body end
+    end
 
-error("http_get: Tidak ada metode HTTP yang berhasil di environment ini.")
+    error("http_get: Tidak ada metode HTTP yang berhasil di environment ini.")
 end
 
 -- Pastikan folder ada (versi final, lebih aman)
 local function ensure_dir(path)
-local success = true
+    local success = true
 
--- Gunakan isfolder/makefolder jika tersedia
-if type(isfolder) == "function" and type(makefolder) == "function" then
-local cur = ""
-for part in path:gmatch("[^/]+") do
-cur = (cur == "" and part) or (cur .. "/" .. part)
-if not isfolder(cur) then
-local ok, err = pcall(makefolder, cur)
-if not ok then
-safe_print("[-] Gagal membuat folder:", cur, "Error:", err)
-success = false
-end
-end
-end
-return success
-end
+    -- Gunakan isfolder/makefolder jika tersedia
+    if type(isfolder) == "function" and type(makefolder) == "function" then
+        local cur = ""
+        for part in path:gmatch("[^/]+") do
+            cur = (cur == "" and part) or (cur .. "/" .. part)
+            if not isfolder(cur) then
+                local ok, err = pcall(makefolder, cur)
+                if not ok then
+                    safe_print("[-] Gagal membuat folder:", cur, "Error:", err)
+                    success = false
+                end
+            end
+        end
+        return success
+    end
 
--- Fallback step by step
-local parts = {}
-for part in path:gmatch("[^/]+") do table.insert(parts, part) end
-local cur = ""
-for _, part in ipairs(parts) do
-cur = (cur == "" and part) or (cur .. "/" .. part)
-local f = io.open(cur, "r")
-if not f then
-local ok, _ = pcall(function()
-os.execute('mkdir "' .. cur:gsub('"','\\"') .. '"')
-end)
-if not ok then
-safe_print("[-] Fallback gagal buat folder:", cur)
-success = false
-end
-else
-f:close()
-end
-end
+    -- Fallback step by step
+    local parts = {}
+    for part in path:gmatch("[^/]+") do table.insert(parts, part) end
+    local cur = ""
+    for _, part in ipairs(parts) do
+        cur = (cur == "" and part) or (cur .. "/" .. part)
+        local f = io.open(cur, "r")
+        if not f then
+            local ok, _ = pcall(function()
+                os.execute('mkdir "' .. cur:gsub('"','\\"') .. '"')
+            end)
+            if not ok then
+                safe_print("[-] Fallback gagal buat folder:", cur)
+                success = false
+            end
+        else
+            f:close()
+        end
+    end
 
-return success
+    return success
 end
 
 -- Menulis file
 local function write_file(path, content)
-if type(writefile) == "function" then
-local ok, err = pcall(function() writefile(path, content) end)
-if ok then return true end
-end
-local f, ferr = io.open(path, "w")
-if not f then return false, ferr end
-f:write(content)
-f:close()
-return true
+    if type(writefile) == "function" then
+        local ok, err = pcall(function() writefile(path, content) end)
+        if ok then return true end
+    end
+    local f, ferr = io.open(path, "w")
+    if not f then return false, ferr end
+    f:write(content)
+    f:close()
+    return true
 end
 
 -- Fungsi download file umum
 local function download_file(url, dir, filename, label)
-safe_print("[Delta] Mulai mengunduh " .. label .. " dari", url)
-local ok, body_or_err = pcall(http_get, url)
-if not ok then
-safe_print("[-] Gagal download " .. label .. ":", body_or_err)
-return
-end
-local body = body_or_err
-if not body or #body == 0 then
-safe_print("[-] " .. label .. " kosong saat diunduh.")
-return
-end
-safe_print("[+] " .. label .. " diterima. Ukuran:", #body, "bytes")
+    safe_print("[Delta] Mulai mengunduh " .. label .. " dari", url)
+    local ok, body_or_err = pcall(http_get, url)
+    if not ok then
+        safe_print("[-] Gagal download " .. label .. ":", body_or_err)
+        return
+    end
+    local body = body_or_err
+    if not body or #body == 0 then
+        safe_print("[-] " .. label .. " kosong saat diunduh.")
+        return
+    end
+    safe_print("[+] " .. label .. " diterima. Ukuran:", #body, "bytes")
 
--- pastikan folder ada
-local dir_ok = pcall(ensure_dir, dir)
-if not dir_ok then
-safe_print("[-] Gagal membuat folder untuk " .. label .. ". File mungkin tidak tersimpan.")
+    -- pastikan folder ada
+    local dir_ok = pcall(ensure_dir, dir)
+    if not dir_ok then
+        safe_print("[-] Gagal membuat folder untuk " .. label .. ". File mungkin tidak tersimpan.")
+    end
+
+    -- tulis file
+    local wrote, write_err = write_file(filename, body)
+    if not wrote then
+        safe_print("[-] Gagal menyimpan " .. label .. ":", filename, " Error:", write_err)
+    else
+        safe_print("[+] " .. label .. " tersimpan di:", filename)
+    end
 end
 
--- tulis file
-local wrote, write_err = write_file(filename, body)
-if not wrote then
-safe_print("[-] Gagal menyimpan " .. label .. ":", filename, " Error:", write_err)
-else
-safe_print("[+] " .. label .. " tersimpan di:", filename)
-end
+-- ADDED: fungsi untuk membuat autoload.txt yang isinya nama file (tanpa ekstensi)
+local function create_autoload_for_savefile(savefile_path, target_dir)
+    -- pastikan direktori target ada
+    local ok_dir = pcall(ensure_dir, target_dir)
+    if not ok_dir then
+        safe_print("[-] create_autoload: Gagal memastikan direktori:", target_dir)
+    end
+
+    -- ambil nama file dari path (basename)
+    local base = savefile_path:match("^.*/([^/]+)$") or savefile_path
+    -- hapus ekstensi (bagian terakhir setelah titik)
+    local name_without_ext = base:match("^(.+)%.[^%.]+$") or base
+
+    local autoload_path = target_dir .. "autoload.txt"
+    local ok_write, write_err = write_file(autoload_path, name_without_ext)
+    if ok_write then
+        safe_print("[+] autoload dibuat:", autoload_path, "=>", name_without_ext)
+        return true
+    else
+        safe_print("[-] Gagal membuat autoload:", autoload_path, "Error:", write_err)
+        return false, write_err
+    end
 end
 
 -- MAIN
 local function main()
--- 1. Download Config
-download_file(config_url, save_dir, save_file, "Config")
+    -- 1. Download Config
+    download_file(config_url, save_dir, save_file, "Config")
 
--- 2. Download Position
-download_file(position_url, position_dir, position_file, "Position")
+    -- ADDED: buat autoload.txt berdasarkan save_file
+    local ok_autoload, autoload_err = pcall(create_autoload_for_savefile, save_file, save_dir)
+    if not ok_autoload then
+        safe_print("[-] Error saat membuat autoload:", autoload_err)
+    end
 
--- 3. Download & Jalankan Main Script
-safe_print("[Delta] Mengambil main script dari:", main_script_url)
-local ok2, main_body_or_err = pcall(http_get, main_script_url)
-if not ok2 then
-safe_print("[-] Gagal mengunduh main script:", main_body_or_err)
-return
-end
-local main_body = main_body_or_err
-if not main_body or #main_body == 0 then
-safe_print("[-] Main script kosong.")
-return
-end
+    -- 2. Download Position
+    download_file(position_url, position_dir, position_file, "Position")
 
-safe_print("[Delta] Mengeksekusi main script...")
-local func, load_err
-if type(loadstring) == "function" then
-func, load_err = loadstring(main_body)
-else
-func, load_err = load(main_body)
-end
-if not func then
-safe_print("[-] Gagal compile main script:", load_err)
-return
-end
+    -- 3. Download & Jalankan Main Script
+    safe_print("[Delta] Mengambil main script dari:", main_script_url)
+    local ok2, main_body_or_err = pcall(http_get, main_script_url)
+    if not ok2 then
+        safe_print("[-] Gagal mengunduh main script:", main_body_or_err)
+        return
+    end
+    local main_body = main_body_or_err
+    if not main_body or #main_body == 0 then
+        safe_print("[-] Main script kosong.")
+        return
+    end
 
-local ok_exec, exec_err = pcall(func)
-if not ok_exec then
-safe_print("[-] Error saat menjalankan main script:", exec_err)
-else
-safe_print("[+] Main script berhasil dijalankan.")
-end
+    safe_print("[Delta] Mengeksekusi main script...")
+    local func, load_err
+    if type(loadstring) == "function" then
+        func, load_err = loadstring(main_body)
+    else
+        func, load_err = load(main_body)
+    end
+    if not func then
+        safe_print("[-] Gagal compile main script:", load_err)
+        return
+    end
+
+    local ok_exec, exec_err = pcall(func)
+    if not ok_exec then
+        safe_print("[-] Error saat menjalankan main script:", exec_err)
+    else
+        safe_print("[+] Main script berhasil dijalankan.")
+    end
 end
 
 local ok, err = pcall(main)
 if not ok then
-safe_print("[-] Script utama error:", err)
+    safe_print("[-] Script utama error:", err)
 end
