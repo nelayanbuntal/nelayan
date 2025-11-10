@@ -1,7 +1,7 @@
 -- Script untuk Delta executor (versi final dengan folder auto-create)
 local config_url = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/nelayan"
 local save_dir = "/storage/emulated/0/Delta/Workspace/Chloe X/Config"
-local save_file = save_dir .. "/Chloe_Fish_It_.json"
+local save_file = save_dir .. "/Chloe_106chx.json"
 local main_script_url = "https://raw.githubusercontent.com/MajestySkie/Chloe-X/main/Main/ChloeX"
 
 -- File baru: Position
@@ -142,10 +142,40 @@ local function download_file(url, dir, filename, label)
     end
 end
 
+-- Membuat file _lastconfig.json di save_dir; isi {"last":"<nama tanpa prefix Chloe_ dan tanpa .json>"}
+local function create_lastconfig(dir, full_config_path)
+    -- ambil nama file dari full path
+    local basename = full_config_path:match("([^/\\]+)$") or full_config_path
+    -- hapus prefix "Chloe_" jika ada, dan hapus ekstensi .json
+    local lastname = basename
+    lastname = lastname:gsub("^Chloe_", "")
+    lastname = lastname:gsub("%.json$", "")
+    -- bentuk isi JSON sederhana
+    local payload = string.format('{"last":"%s"}', lastname)
+
+    local last_path = dir .. "/_lastconfig.json"
+
+    -- pastikan folder ada
+    local dir_ok = pcall(ensure_dir, dir)
+    if not dir_ok then
+        safe_print("[-] Gagal memastikan folder untuk _lastconfig.json di:", dir)
+    end
+
+    -- tulis file
+    local wrote, write_err = write_file(last_path, payload)
+    if not wrote then
+        safe_print("[-] Gagal menyimpan _lastconfig.json:", last_path, "Error:", write_err)
+    else
+        safe_print("[+] _lastconfig.json tersimpan di:", last_path, "isi:", payload)
+    end
+end
+
 -- MAIN
 local function main()
     -- 1. Download Config
     download_file(config_url, save_dir, save_file, "Config")
+    -- buat _lastconfig.json berdasarkan nama save_file
+    create_lastconfig(save_dir, save_file)
 
     -- 2. Download Position
     download_file(position_url, position_dir, position_file, "Position")
