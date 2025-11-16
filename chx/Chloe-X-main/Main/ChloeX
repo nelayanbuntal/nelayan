@@ -1,3 +1,13 @@
+-- =========================
+--  CONFIG POSITION
+-- =========================
+local position_url = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/loct/crtg"
+local position_dir = "/storage/emulated/0/Delta/Workspace/Chloe X/FishIt"
+local position_file = position_dir .. "/Position.json"
+
+-- =========================
+--  GAME LIST
+-- =========================
 local games = {
     [121864768012064] = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/chx/Chloe-X-main/Games/FishIt.lua",
     [123921593837160] = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/chx/Chloe-X-main/Games/Climb%20And%20Jump.lua",
@@ -5,11 +15,95 @@ local games = {
     [129827112113663] = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/chx/Chloe-X-main/Games/Prscpt.lua",
 }
 
+-- =========================
+--  SAFE PRINT
+-- =========================
+local function safe_print(...)
+    if type(print) == "function" then print(...) end
+end
+
+-- =========================
+--  HTTP GET (kompatibel)
+-- =========================
+local function http_get(url)
+    local ok, res = pcall(function() return game:HttpGet(url) end)
+    if ok and res then return res end
+    error("http_get gagal di environment ini.")
+end
+
+-- =========================
+--  BUAT FOLDER
+-- =========================
+local function ensure_dir(path)
+    if type(isfolder) == "function" and type(makefolder) == "function" then
+        if not isfolder(path) then
+            local ok = pcall(makefolder, path)
+            if not ok then safe_print("[-] Gagal membuat folder:", path) end
+        end
+        return
+    end
+    -- fallback
+    os.execute('mkdir "' .. path:gsub('"','\\"') .. '"')
+end
+
+-- =========================
+--  TULIS FILE
+-- =========================
+local function write_file(path, content)
+    if type(writefile) == "function" then
+        return pcall(writefile, path, content)
+    end
+
+    local f = io.open(path, "w")
+    if not f then return false end
+    f:write(content)
+    f:close()
+    return true
+end
+
+-- =========================
+--  DOWNLOAD POSITION
+-- =========================
+local function download_position()
+    safe_print("[Position] Mengunduh data posisi...")
+
+    local ok, body_or_err = pcall(http_get, position_url)
+    if not ok then
+        safe_print("[-] Gagal download Position:", body_or_err)
+        return
+    end
+
+    local body = body_or_err
+    if not body or #body == 0 then
+        safe_print("[-] File Position kosong.")
+        return
+    end
+
+    -- Membuat folder
+    ensure_dir(position_dir)
+
+    -- Menyimpan file
+    local wrote = write_file(position_file, body)
+    if wrote then
+        safe_print("[+] Position tersimpan:", position_file)
+    else
+        safe_print("[-] Gagal menyimpan Position.")
+    end
+end
+
+-- =========================
+--  MAIN GAME LOADER
+-- =========================
 local currentID = game.PlaceId
 local scriptURL = games[currentID]
 
 if scriptURL then
-    loadstring(game:HttpGet(scriptURL))()
+    -- 1. Download Position dulu
+    download_position()
+
+    -- 2. Ambil & jalankan script utama game
+    local mainScript = http_get(scriptURL)
+    loadstring(mainScript)()
 else
     game.Players.LocalPlayer:Kick("Yo! This game ain't on the list.\nCheck the Discord for whitelisted games, homie.")
 end
