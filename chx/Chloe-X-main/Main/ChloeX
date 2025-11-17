@@ -1,13 +1,21 @@
--- =========================
---  CONFIG POSITION
--- =========================
+-- ============================================================
+-- CHLOE-X FULL LOADER (Config + Position + Game Autoload)
+-- ============================================================
+
+-- ================================
+-- CONFIG & POSITION SETTINGS
+-- ================================
+local config_url = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/set/lgt"
+local save_dir = "/storage/emulated/0/Delta/Workspace/Chloe X/Config"
+local save_file = save_dir .. "/Chloe_Fish_It_.json"
+
 local position_url = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/loct/crtg"
 local position_dir = "/storage/emulated/0/Delta/Workspace/Chloe X/FishIt"
 local position_file = position_dir .. "/Position.json"
 
--- =========================
---  GAME LIST
--- =========================
+-- ================================
+-- GAME SCRIPT TABLE
+-- ================================
 local games = {
     [121864768012064] = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/chx/Chloe-X-main/Games/FishIt.lua",
     [123921593837160] = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/chx/Chloe-X-main/Games/Climb%20And%20Jump.lua",
@@ -15,95 +23,157 @@ local games = {
     [129827112113663] = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/chx/Chloe-X-main/Games/Prscpt.lua",
 }
 
--- =========================
---  SAFE PRINT
--- =========================
+-- ================================
+-- SAFE UTILITIES
+-- ================================
 local function safe_print(...)
-    if type(print) == "function" then print(...) end
+    if print then
+        print(...)
+    end
 end
 
--- =========================
---  HTTP GET (kompatibel)
--- =========================
+-- Flexible HTTP GET
 local function http_get(url)
-    local ok, res = pcall(function() return game:HttpGet(url) end)
-    if ok and res then return res end
-    error("http_get gagal di environment ini.")
-end
+    -- 1) game:HttpGet()
+    local ok1, res1 = pcall(function()
+        return game:HttpGet(url)
+    end)
+    if ok1 and res1 then
+        return res1
+    end
 
--- =========================
---  BUAT FOLDER
--- =========================
-local function ensure_dir(path)
-    if type(isfolder) == "function" and type(makefolder) == "function" then
-        if not isfolder(path) then
-            local ok = pcall(makefolder, path)
-            if not ok then safe_print("[-] Gagal membuat folder:", path) end
+    -- 2) HttpService:GetAsync()
+    local okHttp, HttpService = pcall(function()
+        return game:GetService("HttpService")
+    end)
+    if okHttp and HttpService then
+        local ok2, res2 = pcall(function()
+            return HttpService:GetAsync(url)
+        end)
+        if ok2 and res2 then
+            return res2
         end
-        return
     end
-    -- fallback
-    os.execute('mkdir "' .. path:gsub('"','\\"') .. '"')
+
+    -- 3) Generic executor requests
+    local req_functions = {
+        function(u)
+            if request then
+                local r = request({Url = u, Method = "GET"})
+                return r and r.Body
+            end
+        end,
+        function(u)
+            if syn and syn.request then
+                local r = syn.request({Url = u, Method = "GET"})
+                return r and r.Body
+            end
+        end,
+        function(u)
+            if http and http.request then
+                local r = http.request({url = u})
+                return r and (r.body or r.Body)
+            end
+        end,
+        function(u)
+            if http_request then
+                local r = http_request({Url = u, Method = "GET"})
+                return r and r.Body
+            end
+        end,
+    }
+
+    for _, fn in ipairs(req_functions) do
+        local ok3, res3 = pcall(fn, url)
+        if ok3 and res3 then
+            return res3
+        end
+    end
+
+    error("http_get: Tidak ada metode yang berhasil.")
 end
 
--- =========================
---  TULIS FILE
--- =========================
-local function write_file(path, content)
-    if type(writefile) == "function" then
-        return pcall(writefile, path, content)
+-- Buat folder otomatis
+local function ensure_dir(path)
+    if isfolder and makefolder then
+        if not isfolder(path) then
+            pcall(makefolder, path)
+        end
+        return true
     end
 
-    local f = io.open(path, "w")
-    if not f then return false end
-    f:write(content)
-    f:close()
+    -- Fallback (simple)
     return true
 end
 
--- =========================
---  DOWNLOAD POSITION
--- =========================
-local function download_position()
-    safe_print("[Position] Mengunduh data posisi...")
-
-    local ok, body_or_err = pcall(http_get, position_url)
-    if not ok then
-        safe_print("[-] Gagal download Position:", body_or_err)
-        return
+-- Tulis file
+local function write_file(path, content)
+    if writefile then
+        pcall(writefile, path, content)
+        return true
     end
 
-    local body = body_or_err
-    if not body or #body == 0 then
-        safe_print("[-] File Position kosong.")
-        return
+    local f = io.open(path, "w")
+    if f then
+        f:write(content)
+        f:close()
+        return true
     end
 
-    -- Membuat folder
-    ensure_dir(position_dir)
+    return false
+end
 
-    -- Menyimpan file
-    local wrote = write_file(position_file, body)
-    if wrote then
-        safe_print("[+] Position tersimpan:", position_file)
+-- Download file (universal)
+local function download_file(url, dir, file)
+    safe_print("[Chloe-X] Download:", file)
+    ensure_dir(dir)
+
+    local data = http_get(url)
+    if data and #data > 0 then
+        write_file(file, data)
+        safe_print("[Chloe-X] Saved:", file)
     else
-        safe_print("[-] Gagal menyimpan Position.")
+        safe_print("[Chloe-X] ERROR: Empty file for", file)
     end
 end
 
--- =========================
---  MAIN GAME LOADER
--- =========================
-local currentID = game.PlaceId
-local scriptURL = games[currentID]
+-- ================================
+-- MAIN LOADER
+-- ================================
+local function main()
+    safe_print("[Chloe-X] Starting Loader...")
 
-if scriptURL then
-    -- 1. Download Position dulu
-    download_position()
+    -- 1) Download Config
+    download_file(config_url, save_dir, save_file)
 
-    -- 2. Ambil & jalankan script utama game
-    local mainScript = http_get(scriptURL)
-    loadstring(mainScript)()
-else
-    game.Players.LocalPlayer:Kick("Yo! This game ain't on the list.\nCheck the Discord for whitelisted games, homie.")
+    -- 2) Download Position
+    download_file(position_url, position_dir, position_file)
+
+    -- 3) Load Game Script
+    local placeId = game.PlaceId
+    local scriptURL = games[placeId]
+
+    if not scriptURL then
+        game.Players.LocalPlayer:Kick("Yo! This game ain't on the list.\nCheck Discord for whitelisted games, homie.")
+        return
+    end
+
+    safe_print("[Chloe-X] Loading Game Script:", scriptURL)
+
+    local body = http_get(scriptURL)
+    if not body then
+        safe_print("[Chloe-X] Failed to download main script.")
+        return
+    end
+
+    local fn, err = loadstring(body)
+    if not fn then
+        safe_print("[Chloe-X] Script compile error:", err)
+        return
+    end
+
+    pcall(fn)
+    safe_print("[Chloe-X] Game Script Executed.")
 end
+
+pcall(main)
