@@ -3,6 +3,15 @@
 -- ============================================================
 
 -- ================================
+-- SAFE UTILITIES
+-- ================================
+local function safe_print(...)
+    if print then
+        print(...)
+    end
+end
+
+-- ================================
 -- CONFIG & POSITION SETTINGS
 -- ================================
 local config_url = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/set/chxins"
@@ -31,15 +40,6 @@ local games = {
     [108343567000516] = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/chx/Chloe-X-main/Games/Climb%20And%20Jump%20Lego.lua",
     [129827112113663] = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/chx/Chloe-X-main/Games/Prscpt.lua",
 }
-
--- ================================
--- SAFE UTILITIES
--- ================================
-local function safe_print(...)
-    if print then
-        print(...)
-    end
-end
 
 -- Flexible HTTP GET
 local function http_get(url)
@@ -146,9 +146,7 @@ local function download_file(url, dir, file)
     end
 end
 
--- ================================
 -- MAIN LOADER
--- ================================
 local function main()
     safe_print("[Chloe-X] Starting Loader...")
 
