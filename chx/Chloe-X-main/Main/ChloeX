@@ -9,7 +9,14 @@ local config_url = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs
 local save_dir = "/storage/emulated/0/Delta/Workspace/Chloe X/Config"
 local save_file = save_dir .. "/Chloe_Fish_It_.json"
 
-local position = position or "eso"  -- pastikan variabel position ada
+-- Gunakan position dari luar jika ada, jika tidak pakai default "eso"
+if position == nil or position == "" then
+    position = "eso"
+    safe_print("[Chloe-X] Position tidak didefinisikan, menggunakan default:", position)
+else
+    safe_print("[Chloe-X] Position dari luar:", position)
+end
+
 local position_url = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/loct/" .. position
 local position_backup = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/loct/eso"
 local position_dir = "/storage/emulated/0/Delta/Workspace/Chloe X/FishIt"
