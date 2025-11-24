@@ -14,7 +14,7 @@ end
 -- ================================
 -- CONFIG & POSITION SETTINGS
 -- ================================
-local config_url = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/set/chxins"
+local config_url = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/set/aku"
 local save_dir = "/storage/emulated/0/Delta/Workspace/Chloe X/Config"
 local save_file = save_dir .. "/Chloe_Fish_It_.json"
 
