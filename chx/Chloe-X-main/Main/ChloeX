@@ -20,7 +20,7 @@ local save_file = save_dir .. "/Chloe_Fish_It_.json"
 
 -- Gunakan position dari luar jika ada, jika tidak pakai default "eso"
 if position == nil or position == "" then
-    position = "crtg"
+    position = "event"
     safe_print("[Chloe-X] Position tidak didefinisikan, menggunakan default:", position)
 else
     safe_print("[Chloe-X] Position dari luar:", position)
