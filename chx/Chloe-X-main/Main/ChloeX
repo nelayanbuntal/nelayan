@@ -24,7 +24,7 @@ local back_save_file = save_dir .. "/Chloe_UPD_Fish_It_.json"
 
 -- Gunakan position dari luar jika ada, jika tidak pakai default "eso"
 if position == nil or position == "" then
-    position = "event"
+    position = "eso"
     safe_print("[Chloe-X] Position tidak didefinisikan, menggunakan default:", position)
 else
     safe_print("[Chloe-X] Position dari luar:", position)
