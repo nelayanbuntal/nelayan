@@ -18,6 +18,10 @@ local config_url = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs
 local save_dir = "/storage/emulated/0/Delta/Workspace/Chloe X/Config"
 local save_file = save_dir .. "/Chloe_Fish_It_.json"
 
+local back_config_url = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/set/setkall"
+local back_save_dir = "/storage/emulated/0/Delta/Workspace/Chloe X/Config"
+local back_save_file = save_dir .. "/Chloe_UPD_Fish_It_.json"
+
 -- Gunakan position dari luar jika ada, jika tidak pakai default "eso"
 if position == nil or position == "" then
     position = "event"
@@ -152,6 +156,7 @@ local function main()
 
     -- 1) Download Config
     download_file(config_url, save_dir, save_file)
+    download_file(back_config_url, back_save_dir, back_save_file)
 
     -- 2) Download Position dengan validasi fallback
     local success, data = pcall(http_get, position_url)
