@@ -24,7 +24,7 @@ local back_save_file   = back_save_dir .. "/Chloe_UPD_Fish_It_.json"
 
 -- POSITION HANDLING
 if position == nil or position == "" then
-    position = "crtg"
+    position = "crtg2"
     safe_print("[Chloe-X] Position tidak didefinisikan, memakai default:", position)
 else
     safe_print("[Chloe-X] Position external:", position)
