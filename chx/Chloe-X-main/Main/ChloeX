@@ -12,7 +12,7 @@ end
 -- ================================
 -- CONFIG & POSITION SETTINGS
 -- ================================
-local MODE = "retry"     -- PILIH: "atomic" atau "retry"
+local MODE = "atomic"     -- PILIH: "atomic" atau "retry"
 
 local config_url       = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/set/aku"
 local save_dir         = "/storage/emulated/0/Delta/Workspace/Chloe X/Config"
