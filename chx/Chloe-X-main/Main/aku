@@ -18,7 +18,7 @@ local back_save_dir = "/storage/emulated/0/Delta/Workspace/Chloe X/Config"
 local back_save_file = back_save_dir .. "/Chloe_UPD_Fish_It_.json"
 
 if position == nil or position == "" then
-    position = "crtg"
+    position = "eso"
     safe_print("[Chloe-X] Position tidak didefinisikan, menggunakan default:", position)
 end
 
