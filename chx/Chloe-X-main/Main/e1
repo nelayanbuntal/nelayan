@@ -14,17 +14,17 @@ end
 -- ================================
 -- CONFIG & POSITION SETTINGS
 -- ================================
-local config_url = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/set/starterv8"
+local config_url = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/set/hazmat108"
 local save_dir = "/storage/emulated/0/Delta/Workspace/Chloe X/Config"
 local save_file = save_dir .. "/Chloe__Fish_It_.json"
 
-local back_config_url = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/set/starterv8"
+local back_config_url = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/set/hazmat108"
 local back_save_dir = "/storage/emulated/0/Delta/Workspace/Chloe X/Config"
 local back_save_file = save_dir .. "/Chloe_UPD_Fish_It_.json"
 
 -- Gunakan position dari luar jika ada, jika tidak pakai default "eso"
 if position == nil or position == "" then
-    position = "awal"
+    position = "eso"
     safe_print("[Chloe-X] Position tidak didefinisikan, menggunakan default:", position)
 else
     safe_print("[Chloe-X] Position dari luar:", position)
