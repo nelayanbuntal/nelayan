@@ -8,38 +8,38 @@
 local function safe_print(...)
     if print then print(...) end
 end
-
+script_key="MMpGFSYMXYVlnSkynbHCDyxKSQSbVEGv";
 -- ================================
 -- CONFIG & POSITION SETTINGS
 -- ================================
 local MODE = "atomic"     -- PILIH: "atomic" atau "retry"
 
-local config_url       = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/set/aku"
-local save_dir         = "/storage/emulated/0/Delta/Workspace/Chloe X/Config"
-local save_file        = save_dir .. "/Chloe__Fish_It_.json"
+local config_url       = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/set/enchant_atmc"
+local save_dir         = "/storage/emulated/0/Delta/Workspace/euphoria_fishit/settings/"
+local save_file        = save_dir .. "/aaa.json"
 
-local back_config_url  = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/set/aku"
-local back_save_dir    = "/storage/emulated/0/Delta/Workspace/Chloe X/Config"
-local back_save_file   = back_save_dir .. "/Chloe_UPD_Fish_It_.json"
+local back_config_url  = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/set/autoload"
+local back_save_dir    = "/storage/emulated/0/Delta/Workspace/euphoria_fishit/settings/"
+local back_save_file   = back_save_dir .. "/autoload.txt"
 
 -- POSITION HANDLING
 if position == nil or position == "" then
-    position = "eso"
+    position = "atmc_enchant"
     safe_print("[Chloe-X] Position tidak didefinisikan, memakai default:", position)
 else
     safe_print("[Chloe-X] Position external:", position)
 end
 
 local position_url     = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/loct/" .. position
-local position_backup  = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/loct/eso"
-local position_dir     = "/storage/emulated/0/Delta/Workspace/Chloe X/FishIt"
-local position_file    = position_dir .. "/Position.json"
+local position_backup  = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/loct/atmc_enchant"
+local position_dir     = "/storage/emulated/0/Delta/Workspace/euphoria_fishit/settings/"
+local position_file    = position_dir .. "/saved_positions.json"
 
 -- ================================
 -- GAME SCRIPT TABLE
 -- ================================
 local games = {
-    [121864768012064] = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/chx/Chloe-X-main/Games/FishIt.lua",
+    [121864768012064] = "https://raw.githubusercontent.com/bimoraa/Euphoria/refs/heads/main/loader.luau",
     [123921593837160] = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/chx/Chloe-X-main/Games/Climb%20And%20Jump.lua",
     [108343567000516] = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/chx/Chloe-X-main/Games/Climb%20And%20Jump%20Lego.lua",
     [129827112113663] = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/chx/Chloe-X-main/Games/Prscpt.lua",
