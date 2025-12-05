@@ -1,198 +1,242 @@
 -- ============================================================
--- CHLOE-X FULL LOADER (Config + Position + Game Autoload)
+--    CHLOE-X UNIVERSAL LOADER (Atomic Mode + Retry System)
 -- ============================================================
 
 -- ================================
--- SAFE UTILITIES
+-- SAFE PRINT
 -- ================================
 local function safe_print(...)
-    if print then
-        print(...)
-    end
+    if print then print(...) end
 end
 
 -- ================================
 -- CONFIG & POSITION SETTINGS
 -- ================================
-local config_url = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/set/hazmat108"
-local save_dir = "/storage/emulated/0/Delta/Workspace/Chloe X/Config"
-local save_file = save_dir .. "/Chloe__Fish_It_.json"
+local MODE = "atomic"     -- PILIH: "atomic" atau "retry"
 
-local back_config_url = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/set/hazmat108"
-local back_save_dir = "/storage/emulated/0/Delta/Workspace/Chloe X/Config"
-local back_save_file = save_dir .. "/Chloe_UPD_Fish_It_.json"
+local config_url       = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/set/aku"
+local save_dir         = "/storage/emulated/0/Delta/Workspace/Chloe X/Config"
+local save_file        = save_dir .. "/Chloe__Fish_It_.json"
 
--- Gunakan position dari luar jika ada, jika tidak pakai default "eso"
+local back_config_url  = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/set/aku"
+local back_save_dir    = "/storage/emulated/0/Delta/Workspace/Chloe X/Config"
+local back_save_file   = back_save_dir .. "/Chloe_UPD_Fish_It_.json"
+
+-- POSITION HANDLING
 if position == nil or position == "" then
     position = "eso"
-    safe_print("[Chloe-X] Position tidak didefinisikan, menggunakan default:", position)
+    safe_print("[Chloe-X] Position tidak didefinisikan, memakai default:", position)
 else
-    safe_print("[Chloe-X] Position dari luar:", position)
+    safe_print("[Chloe-X] Position external:", position)
 end
 
-local position_url = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/loct/" .. position
-local position_backup = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/loct/eso"
-local position_dir = "/storage/emulated/0/Delta/Workspace/Chloe X/FishIt"
-local position_file = position_dir .. "/Position.json"
+local position_url     = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/loct/" .. position
+local position_backup  = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/loct/eso"
+local position_dir     = "/storage/emulated/0/Delta/Workspace/Chloe X/FishIt"
+local position_file    = position_dir .. "/Position.json"
 
 -- ================================
 -- GAME SCRIPT TABLE
 -- ================================
 local games = {
-    [121864768012064] = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/108/Games/FishIt.lua",
-    [123921593837160] = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/108/Games/Climb%20And%20Jump.lua",
-    [108343567000516] = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/108/Games/Climb%20And%20Jump%20Lego.lua",
-    [129827112113663] = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/108/Games/Prscpt.lua",
+    [121864768012064] = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/chx/Chloe-X-main/Games/FishIt.lua",
+    [123921593837160] = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/chx/Chloe-X-main/Games/Climb%20And%20Jump.lua",
+    [108343567000516] = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/chx/Chloe-X-main/Games/Climb%20And%20Jump%20Lego.lua",
+    [129827112113663] = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/chx/Chloe-X-main/Games/Prscpt.lua",
 }
 
--- Flexible HTTP GET
+-- ============================================================
+-- UNIVERSAL HTTP GET
+-- ============================================================
 local function http_get(url)
-    -- 1) game:HttpGet()
     local ok1, res1 = pcall(function()
         return game:HttpGet(url)
     end)
-    if ok1 and res1 then
-        return res1
-    end
+    if ok1 and res1 then return res1 end
 
-    -- 2) HttpService:GetAsync()
-    local okHttp, HttpService = pcall(function()
+    local okH, HttpService = pcall(function()
         return game:GetService("HttpService")
     end)
-    if okHttp and HttpService then
+    if okH and HttpService then
         local ok2, res2 = pcall(function()
             return HttpService:GetAsync(url)
         end)
-        if ok2 and res2 then
-            return res2
-        end
+        if ok2 and res2 then return res2 end
     end
 
-    -- 3) Generic executor requests
-    local req_functions = {
+    local fallback = {
         function(u)
-            if request then
-                local r = request({Url = u, Method = "GET"})
-                return r and r.Body
-            end
+            if request then return request({Url=u, Method="GET"}).Body end
         end,
         function(u)
-            if syn and syn.request then
-                local r = syn.request({Url = u, Method = "GET"})
-                return r and r.Body
-            end
+            if syn and syn.request then return syn.request({Url=u, Method="GET"}).Body end
         end,
         function(u)
             if http and http.request then
-                local r = http.request({url = u})
+                local r=http.request({url=u})
                 return r and (r.body or r.Body)
             end
         end,
         function(u)
-            if http_request then
-                local r = http_request({Url = u, Method = "GET"})
-                return r and r.Body
-            end
-        end,
+            if http_request then return http_request({Url=u, Method="GET"}).Body end
+        end
     }
 
-    for _, fn in ipairs(req_functions) do
-        local ok3, res3 = pcall(fn, url)
-        if ok3 and res3 then
-            return res3
-        end
+    for _, fn in ipairs(fallback) do
+        local ok, res = pcall(fn, url)
+        if ok and res then return res end
     end
 
-    error("http_get: Tidak ada metode yang berhasil.")
+    return nil
 end
 
--- Buat folder otomatis
+-- ============================================================
+-- FILE FUNCTIONS
+-- ============================================================
 local function ensure_dir(path)
     if isfolder and makefolder then
-        if not isfolder(path) then
-            pcall(makefolder, path)
-        end
-        return true
+        if not isfolder(path) then pcall(makefolder, path) end
     end
-
-    -- Fallback (simple)
-    return true
 end
 
--- Tulis file
 local function write_file(path, content)
     if writefile then
         pcall(writefile, path, content)
-        return true
+        return
     end
-
     local f = io.open(path, "w")
-    if f then
-        f:write(content)
-        f:close()
-        return true
+    if f then f:write(content) f:close() end
+end
+
+local function is_file_valid(path)
+    if not isfile then return true end
+    if not isfile(path) then return false end
+
+    local ok, data = pcall(readfile, path)
+    if not ok or not data then return false end
+    if #data < 10 then return false end
+
+    return true
+end
+
+-- ============================================================
+-- RETRY MODE DOWNLOADER
+-- ============================================================
+local function download_file_retry(url, dir, path, attempts)
+    ensure_dir(dir)
+    attempts = attempts or 3
+
+    for i = 1, attempts do
+        safe_print("[Retry] Attempt", i, "→", path)
+
+        local data = http_get(url)
+        if data and #data > 0 then
+            write_file(path, data)
+        end
+
+        if is_file_valid(path) then
+            safe_print("[Retry] OK:", path)
+            return true
+        end
+
+        task.wait(0.25)
     end
 
+    safe_print("[Retry] FAILED:", path)
     return false
 end
 
--- Download file (universal)
-local function download_file(url, dir, file)
-    safe_print("[Chloe-X] Download:", file)
-    ensure_dir(dir)
+-- ============================================================
+-- ATOMIC MODE DOWNLOADER (ALL OR NOTHING)
+-- ============================================================
+local function atomic_download(list)
+    local tempFiles = {}
 
-    local data = http_get(url)
-    if data and #data > 0 then
-        write_file(file, data)
-        safe_print("[Chloe-X] Saved:", file)
-    else
-        safe_print("[Chloe-X] ERROR: Empty file for", file)
+    -- STEP 1: Download → temp file
+    for _, item in ipairs(list) do
+        ensure_dir(item.dir)
+        local tmp = item.path .. ".tmp"
+
+        table.insert(tempFiles, {tmp = tmp, real = item.path})
+
+        local data = http_get(item.url)
+        if not data or #data < 10 then
+            safe_print("[Atomic] ERROR (corrupt):", item.url)
+            return false
+        end
+
+        write_file(tmp, data)
     end
+
+    -- STEP 2: Validate
+    for _, f in ipairs(tempFiles) do
+        if not is_file_valid(f.tmp) then
+            safe_print("[Atomic] Validation FAIL:", f.tmp)
+            return false
+        end
+    end
+
+    -- STEP 3: Move → final file
+    for _, f in ipairs(tempFiles) do
+        local ok, data = pcall(readfile, f.tmp)
+        if ok and data then
+            write_file(f.real, data)
+        end
+    end
+
+    safe_print("[Atomic] ALL FILES OK")
+    return true
 end
 
+-- ============================================================
 -- MAIN LOADER
+-- ============================================================
+local function fallback_position()
+    safe_print("[Chloe-X] Position FAILED → using backup")
+    download_file_retry(position_backup, position_dir, position_file, 3)
+end
+
 local function main()
-    safe_print("[Chloe-X] Starting Loader...")
+    safe_print("[Chloe-X] Starting loader...")
+    safe_print("[Chloe-X] Mode:", MODE)
 
-    -- 1) Download Config
-    download_file(config_url, save_dir, save_file)
-    download_file(back_config_url, back_save_dir, back_save_file)
+    local fileList = {
+        { url = config_url,      dir = save_dir,      path = save_file },
+        { url = back_config_url, dir = back_save_dir, path = back_save_file },
+        { url = position_url,    dir = position_dir,  path = position_file },
+    }
 
-    -- 2) Download Position dengan validasi fallback
-    local success, data = pcall(http_get, position_url)
-    if not success or not data or #data == 0 then
-        safe_print("[Chloe-X] Position URL gagal, menggunakan backup:", position_backup)
-        download_file(position_backup, position_dir, position_file)
-    else
-        write_file(position_file, data)
-        safe_print("[Chloe-X] Position file saved dari position_url.")
+    if MODE == "retry" then
+        for _, f in ipairs(fileList) do
+            local ok = download_file_retry(f.url, f.dir, f.path, 3)
+            if not ok and f.path == position_file then
+                fallback_position()
+            end
+        end
+
+    elseif MODE == "atomic" then
+        local ok = atomic_download(fileList)
+        if not ok then
+            fallback_position()
+        end
     end
 
-    -- 3) Load Game Script
-    local placeId = game.PlaceId
-    local scriptURL = games[placeId]
-
+    -- ============= LOAD GAME SCRIPT =============
+    local scriptURL = games[game.PlaceId]
     if not scriptURL then
-        game.Players.LocalPlayer:Kick("Yo! This game ain't on the list.\nCheck Discord for whitelisted games, homie.")
-        return
+        return game.Players.LocalPlayer:Kick("Game tidak terdaftar di Chloe-X.")
     end
 
-    safe_print("[Chloe-X] Loading Game Script:", scriptURL)
+    safe_print("[Chloe-X] Loading game script...")
 
     local body = http_get(scriptURL)
-    if not body then
-        safe_print("[Chloe-X] Failed to download main script.")
-        return
-    end
+    if not body then return safe_print("[Chloe-X] Script download FAILED") end
 
     local fn, err = loadstring(body)
-    if not fn then
-        safe_print("[Chloe-X] Script compile error:", err)
-        return
-    end
+    if not fn then return safe_print("[Chloe-X] Script error:", err) end
 
     pcall(fn)
-    safe_print("[Chloe-X] Game Script Executed.")
+    safe_print("[Chloe-X] EXECUTED ✓")
 end
 
 pcall(main)
