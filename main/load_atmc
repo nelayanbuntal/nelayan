@@ -1,11 +1,11 @@
 -- Script untuk Delta executor (versi final dengan folder auto-create)
-local config_url = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/set/atmc"
+local config_url = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/set/enchant_atmc"
 local save_dir = "/storage/emulated/0/Delta/Workspace/euphoria_fishit/settings/"
 local save_file = save_dir .. "le.json"
 local main_script_url = "https://raw.githubusercontent.com/bimoraa/Euphoria/refs/heads/main/loader.luau"
 script_key="MMpGFSYMXYVlnSkynbHCDyxKSQSbVEGv";
 -- File baru: Position
-local position_url = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/loct/esoatmc"
+local position_url = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/loct/atmc_enchant"
 local position_dir = "/storage/emulated/0/Delta/Workspace/euphoria_fishit"
 local position_file = position_dir .. "/saved_positions.json"
 
