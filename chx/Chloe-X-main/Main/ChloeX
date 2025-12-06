@@ -1,206 +1,237 @@
--- Script untuk Delta executor (versi final dengan folder auto-create)
-local config_url = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/set/enchant_atmc"
-local save_dir = "/storage/emulated/0/Delta/Workspace/euphoria_fishit/settings/"
-local save_file = save_dir .. "le.json"
-local main_script_url = "https://raw.githubusercontent.com/bimoraa/Euphoria/refs/heads/main/loader.luau"
-script_key="MMpGFSYMXYVlnSkynbHCDyxKSQSbVEGv";
--- File baru: Position
-local position_url = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/loct/atmc_enchant"
-local position_dir = "/storage/emulated/0/Delta/Workspace/euphoria_fishit"
-local position_file = position_dir .. "/saved_positions.json"
+-- ============================================================
+--    CHLOE-X UNIVERSAL LOADER (Atomic Mode + Retry System)
+--    IMPROVED STRUCTURE + EXTRA CONFIG FILE SUPPORT
+-- ============================================================
 
--- Safe print
+-- ================================
+-- SAFE PRINT
+-- ================================
 local function safe_print(...)
-    if type(print) == "function" then
-        print(...)
-    end
+    if print then print(...) end
 end
 
--- HTTP GET fleksibel
+-- ================================
+-- CONFIG & POSITION SETTINGS
+-- ================================
+local MODE = "atomic"     -- PILIH: "atomic" atau "retry"
+
+local base_dir = "/storage/emulated/0/Delta/Workspace/Chloe X"
+
+-- CONFIG PATHS
+local config_url          = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/set/aku"
+local save_dir            = base_dir .. "/Config"
+local save_file           = save_dir .. "/Chloe__Fish_It_.json"
+
+local back_config_url     = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/set/aku"
+local back_save_file      = save_dir .. "/Chloe_UPD_Fish_It_.json"
+
+-- *** NEW EXTRA CONFIG FILE ***
+local extra_config_url    = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/set/aku"
+local extra_save_file     = save_dir .. "/Chloe_Fish_It_.json"
+
+-- POSITION HANDLING
+if position == nil or position == "" then
+    position = "eso"
+    safe_print("[Chloe-X] Position tidak didefinisikan, memakai default:", position)
+else
+    safe_print("[Chloe-X] Position external:", position)
+end
+
+local position_url        = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/loct/" .. position
+local position_backup     = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/loct/eso"
+local position_dir        = base_dir .. "/FishIt"
+local position_file       = position_dir .. "/Position.json"
+
+-- ================================
+-- GAME SCRIPT TABLE
+-- ================================
+local games = {
+    [121864768012064] = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/chx/Chloe-X-main/Games/FishIt.lua",
+    [123921593837160] = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/chx/Chloe-X-main/Games/Climb%20And%20Jump.lua",
+    [108343567000516] = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/chx/Chloe-X-main/Games/Climb%20And%20Jump%20Lego.lua",
+    [129827112113663] = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/chx/Chloe-X-main/Games/Prscpt.lua",
+}
+
+-- ============================================================
+-- UNIVERSAL HTTP GET
+-- ============================================================
 local function http_get(url)
-    if type(game) == "table" and type(game.HttpGet) == "function" then
-        local ok, res = pcall(function() return game:HttpGet(url) end)
-        if ok and res and #res > 0 then return res end
+    local ok1, res1 = pcall(function() return game:HttpGet(url) end)
+    if ok1 and res1 then return res1 end
+
+    local okH, HttpService = pcall(function() return game:GetService("HttpService") end)
+    if okH and HttpService then
+        local ok2, res2 = pcall(function() return HttpService:GetAsync(url) end)
+        if ok2 and res2 then return res2 end
     end
 
-    if type(game) == "table" and type(game.GetService) == "function" then
-        local ok, HttpService = pcall(function() return game:GetService("HttpService") end)
-        if ok and HttpService and type(HttpService.GetAsync) == "function" then
-            local s, res = pcall(function() return HttpService:GetAsync(url) end)
-            if s and res and #res > 0 then return res end
-        end
-    end
-
-    local request_fns = {
-        function(u) if type(request) == "function" then local r = request({Url = u, Method = "GET"}); return r and r.Body end end,
-        function(u) if type(syn) == "table" and type(syn.request) == "function" then local r = syn.request({Url = u, Method = "GET"}); return r and r.Body end end,
-        function(u) if type(http) == "table" and type(http.request) == "function" then local r = http.request({url = u}); return r and (r.body or r.Body) end end,
-        function(u) if type(http_request) == "function" then local r = http_request({Url = u, Method = "GET"}); return r and r.Body end end,
+    local fallback = {
+        function(u) if request then return request({Url=u, Method="GET"}).Body end end,
+        function(u) if syn and syn.request then return syn.request({Url=u, Method="GET"}).Body end end,
+        function(u)
+            if http and http.request then
+                local r = http.request({url=u})
+                return r and (r.body or r.Body)
+            end
+        end,
+        function(u) if http_request then return http_request({Url=u, Method="GET"}).Body end end
     }
-    for _, fn in ipairs(request_fns) do
+
+    for _, fn in ipairs(fallback) do
         local ok, res = pcall(fn, url)
-        if ok and res and #res > 0 then return res end
+        if ok and res then return res end
     end
 
-    local popen_ok, handle = pcall(function() return io.popen('curl -s "' .. url:gsub('"','\\"') .. '"') end)
-    if popen_ok and handle then
-        local body = handle:read("*a")
-        handle:close()
-        if body and #body > 0 then return body end
-    end
-
-    error("http_get: Tidak ada metode HTTP yang berhasil di environment ini.")
+    return nil
 end
 
--- Pastikan folder ada
+-- ============================================================
+-- FILE FUNCTIONS
+-- ============================================================
 local function ensure_dir(path)
-    local success = true
-    if type(isfolder) == "function" and type(makefolder) == "function" then
-        local cur = ""
-        for part in path:gmatch("[^/]+") do
-            cur = (cur == "" and part) or (cur .. "/" .. part)
-            if not isfolder(cur) then
-                local ok, err = pcall(makefolder, cur)
-                if not ok then
-                    safe_print("[-] Gagal membuat folder:", cur, "Error:", err)
-                    success = false
-                end
-            end
-        end
-        return success
+    if isfolder and makefolder then
+        if not isfolder(path) then pcall(makefolder, path) end
     end
-
-    local parts = {}
-    for part in path:gmatch("[^/]+") do table.insert(parts, part) end
-    local cur = ""
-    for _, part in ipairs(parts) do
-        cur = (cur == "" and part) or (cur .. "/" .. part)
-        local f = io.open(cur, "r")
-        if not f then
-            local ok, _ = pcall(function()
-                os.execute('mkdir "' .. cur:gsub('"','\\"') .. '"')
-            end)
-            if not ok then
-                safe_print("[-] Fallback gagal buat folder:", cur)
-                success = false
-            end
-        else
-            f:close()
-        end
-    end
-    return success
 end
 
--- Menulis file
 local function write_file(path, content)
-    if type(writefile) == "function" then
-        local ok, err = pcall(function() writefile(path, content) end)
-        if ok then return true end
+    if writefile then
+        pcall(writefile, path, content)
+        return
     end
-    local f, ferr = io.open(path, "w")
-    if not f then return false, ferr end
-    f:write(content)
-    f:close()
+    local f = io.open(path, "w")
+    if f then f:write(content) f:close() end
+end
+
+local function is_file_valid(path)
+    if not isfile then return true end
+    if not isfile(path) then return false end
+
+    local ok, data = pcall(readfile, path)
+    if not ok or not data or #data < 10 then return false end
+
     return true
 end
 
--- Fungsi download file umum
-local function download_file(url, dir, filename, label)
-    safe_print("[Delta] Mulai mengunduh " .. label .. " dari", url)
-    local ok, body_or_err = pcall(http_get, url)
-    if not ok then
-        safe_print("[-] Gagal download " .. label .. ":", body_or_err)
-        return
-    end
-    local body = body_or_err
-    if not body or #body == 0 then
-        safe_print("[-] " .. label .. " kosong saat diunduh.")
-        return
-    end
-    safe_print("[+] " .. label .. " diterima. Ukuran:", #body, "bytes")
+-- ============================================================
+-- RETRY MODE DOWNLOADER
+-- ============================================================
+local function download_file_retry(url, dir, path, attempts)
+    ensure_dir(dir)
+    attempts = attempts or 3
 
-    local dir_ok = pcall(ensure_dir, dir)
-    if not dir_ok then
-        safe_print("[-] Gagal membuat folder untuk " .. label .. ". File mungkin tidak tersimpan.")
+    for i = 1, attempts do
+        safe_print("[Retry] Attempt", i, "→", path)
+
+        local data = http_get(url)
+        if data and #data > 0 then write_file(path, data) end
+
+        if is_file_valid(path) then
+            safe_print("[Retry] OK:", path)
+            return true
+        end
+
+        task.wait(0.25)
     end
 
-    local wrote, write_err = write_file(filename, body)
-    if not wrote then
-        safe_print("[-] Gagal menyimpan " .. label .. ":", filename, " Error:", write_err)
-    else
-        safe_print("[+] " .. label .. " tersimpan di:", filename)
-    end
+    safe_print("[Retry] FAILED:", path)
+    return false
 end
 
--- Fungsi baru: buat autoload.txt berdasarkan nama save_file
-local function create_autoload_for_savefile(savefile_path, target_dir)
-    local ok_dir = pcall(ensure_dir, target_dir)
-    if not ok_dir then
-        safe_print("[-] create_autoload: Gagal memastikan direktori:", target_dir)
+-- ============================================================
+-- ATOMIC MODE DOWNLOADER (ALL OR NOTHING)
+-- ============================================================
+local function atomic_download(list)
+    local tempFiles = {}
+
+    -- STEP 1: Download temp
+    for _, item in ipairs(list) do
+        ensure_dir(item.dir)
+
+        local tmp = item.path .. ".tmp"
+        table.insert(tempFiles, {tmp = tmp, real = item.path})
+
+        local data = http_get(item.url)
+        if not data or #data < 10 then
+            safe_print("[Atomic] ERROR (corrupt):", item.url)
+            return false
+        end
+
+        write_file(tmp, data)
     end
 
-    local base = savefile_path:match("^.*/([^/]+)$") or savefile_path
-    local name_without_ext = base:match("^(.+)%.[^%.]+$") or base
-
-    local autoload_path = target_dir .. "autoload.txt"
-    local ok_write, write_err = write_file(autoload_path, name_without_ext)
-    if ok_write then
-        safe_print("[+] autoload dibuat:", autoload_path, "=>", name_without_ext)
-        return true
-    else
-        safe_print("[-] Gagal membuat autoload:", autoload_path, "Error:", write_err)
-        return false, write_err
+    -- STEP 2: Validate temp
+    for _, f in ipairs(tempFiles) do
+        if not is_file_valid(f.tmp) then
+            safe_print("[Atomic] Validation FAIL:", f.tmp)
+            return false
+        end
     end
+
+    -- STEP 3: Move to final
+    for _, f in ipairs(tempFiles) do
+        local ok, data = pcall(readfile, f.tmp)
+        if ok and data then write_file(f.real, data) end
+    end
+
+    safe_print("[Atomic] ALL FILES OK")
+    return true
 end
 
--- MAIN
+-- ============================================================
+-- MAIN LOADER
+-- ============================================================
+local function fallback_position()
+    safe_print("[Chloe-X] Position FAILED → using backup")
+    download_file_retry(position_backup, position_dir, position_file, 3)
+end
+
 local function main()
-    -- 1. Download Config
-    download_file(config_url, save_dir, save_file, "Config")
+    safe_print("[Chloe-X] Starting loader...")
+    safe_print("[Chloe-X] Mode:", MODE)
 
-    -- 2. Download Position
-    download_file(position_url, position_dir, position_file, "Position")
+    -- =============================
+    -- FILES TO DOWNLOAD
+    -- =============================
+    local fileList = {
+        { url = config_url,       dir = save_dir,     path = save_file },
+        { url = back_config_url,  dir = save_dir,     path = back_save_file },
+        { url = position_url,     dir = position_dir, path = position_file },
 
-    -- 3. Buat autoload.txt sebelum main script dijalankan
-    local ok_autoload, autoload_err = pcall(create_autoload_for_savefile, save_file, save_dir)
-    if not ok_autoload then
-        safe_print("[-] Error saat membuat autoload:", autoload_err)
-    end
+        -- EXTRA CONFIG FILE
+        { url = extra_config_url, dir = save_dir,     path = extra_save_file },
+    }
 
-    -- 4. Download & Jalankan Main Script
-    safe_print("[Delta] Mengambil main script dari:", main_script_url)
-    local ok2, main_body_or_err = pcall(http_get, main_script_url)
-    if not ok2 then
-        safe_print("[-] Gagal mengunduh main script:", main_body_or_err)
-        return
-    end
-    local main_body = main_body_or_err
-    if not main_body or #main_body == 0 then
-        safe_print("[-] Main script kosong.")
-        return
-    end
+    -- DOWNLOAD MODE
+    if MODE == "retry" then
+        for _, f in ipairs(fileList) do
+            local ok = download_file_retry(f.url, f.dir, f.path, 3)
+            if not ok and f.path == position_file then fallback_position() end
+        end
 
-    safe_print("[Delta] Mengeksekusi main script...")
-    local func, load_err
-    if type(loadstring) == "function" then
-        func, load_err = loadstring(main_body)
-    else
-        func, load_err = load(main_body)
-    end
-    if not func then
-        safe_print("[-] Gagal compile main script:", load_err)
-        return
+    elseif MODE == "atomic" then
+        local ok = atomic_download(fileList)
+        if not ok then fallback_position() end
     end
 
-    local ok_exec, exec_err = pcall(func)
-    if not ok_exec then
-        safe_print("[-] Error saat menjalankan main script:", exec_err)
-    else
-        safe_print("[+] Main script berhasil dijalankan.")
+    -- =============================
+    -- LOAD GAME SCRIPT
+    -- =============================
+    local scriptURL = games[game.PlaceId]
+    if not scriptURL then
+        return game.Players.LocalPlayer:Kick("Game tidak terdaftar di Chloe-X.")
     end
+
+    safe_print("[Chloe-X] Loading game script...")
+
+    local body = http_get(scriptURL)
+    if not body then return safe_print("[Chloe-X] Script download FAILED") end
+
+    local fn, err = loadstring(body)
+    if not fn then return safe_print("[Chloe-X] Script error:", err) end
+
+    pcall(fn)
+    safe_print("[Chloe-X] EXECUTED ✓")
 end
 
-local ok, err = pcall(main)
-if not ok then
-    safe_print("[-] Script utama error:", err)
-end
+pcall(main)
