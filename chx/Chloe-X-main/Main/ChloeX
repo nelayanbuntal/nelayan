@@ -11,6 +11,16 @@ local function safe_print(...)
 end
 
 -- ================================
+-- RANDOM POSITION STRING
+-- ================================
+local random_list = { "crtg","crtg2","crtg3","crtg4","crtg5","crtg6","crtg7","crtg8","crtg9","crtg10","crtg11","crtg12","crtg13","crtg14" }
+
+
+local function getRandomFrom(list)
+    return list[math.random(1, #list)]
+end
+
+-- ================================
 -- CONFIG & POSITION SETTINGS
 -- ================================
 local MODE = "atomic"     -- PILIH: "atomic" atau "retry"
@@ -31,14 +41,18 @@ local extra_save_file     = save_dir .. "/Chloe_Fish_It_.json"
 
 -- POSITION HANDLING
 if position == nil or position == "" then
-    position = "eso"
-    safe_print("[Chloe-X] Position tidak didefinisikan, memakai default:", position)
+    position = getRandomFrom(random_list)   -- RANDOMIZED
+    safe_print("[Chloe-X] Position tidak didefinisikan, memakai random:", position)
 else
     safe_print("[Chloe-X] Position external:", position)
 end
 
 local position_url        = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/loct/" .. position
-local position_backup     = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/loct/eso"
+
+-- BACKUP POSITION RANDOMIZED
+local position_backup_rand = getRandomFrom(random_list)
+local position_backup     = "https://raw.githubusercontent.com/nelayanbuntal/nelayan/refs/heads/main/loct/" .. position_backup_rand
+
 local position_dir        = base_dir .. "/FishIt"
 local position_file       = position_dir .. "/Position.json"
 
@@ -182,7 +196,7 @@ end
 -- MAIN LOADER
 -- ============================================================
 local function fallback_position()
-    safe_print("[Chloe-X] Position FAILED → using backup")
+    safe_print("[Chloe-X] Position FAILED → using backup:", position_backup_rand)
     download_file_retry(position_backup, position_dir, position_file, 3)
 end
 
